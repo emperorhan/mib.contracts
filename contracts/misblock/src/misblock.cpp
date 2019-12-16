@@ -13,3 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include "../include/misblock.hpp"
+
+namespace misblock {
+    void misblock::exchangemis( const name& owner, const pointType point ) {
+        // mib.c가 고객에게 misByPoint 만큼의 비율로 point를 차감하고 MIS 토큰을 지급
+        is_account( owner );
+
+        customersTable customerstable( get_self(), get_self().value );
+
+        auto existingCustomer = customerstable.find( owner.value );
+        check(existingCustomer != customerstable.end(), "customer does not exist");
+        const auto& customer = *existingCustomer;
+
+        // check(  );
+    }
+}
+
+
+// void misblock::misblock::exchangemis( const name& owner, const pointType point ){
+
+// }

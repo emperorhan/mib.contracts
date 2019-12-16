@@ -15,19 +15,23 @@ using std::vector;
 
 namespace common {
 
-    static constexpr uint32_t seconds_per_year      = 52 * 7 * 24 * 3600;
-    static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
-    static constexpr uint32_t seconds_per_day       = 24 * 3600;
-    static constexpr int64_t  useconds_per_year     = int64_t(seconds_per_year) * 1000'000ll;
-    static constexpr int64_t  useconds_per_week     = int64_t(seconds_per_week) * 1000'000ll;
-    static constexpr int64_t  useconds_per_day      = int64_t(seconds_per_day) * 1000'000ll;
-    static constexpr uint32_t blocks_per_year       = 2 * seconds_per_year;  // half seconds per year
-    static constexpr uint32_t blocks_per_week       = 2 * seconds_per_week;  // half seconds per week
-    static constexpr uint32_t blocks_per_day        = 2 * seconds_per_day;   // half seconds per day
+    static constexpr uint32_t secondsPerYear      = 52 * 7 * 24 * 3600;
+    static constexpr uint32_t secondsPerMonth     = 31449600; // secondsPerYear / 12
+    static constexpr uint32_t secondsPerWeek      = 24 * 3600 * 7;
+    static constexpr uint32_t secondsPerDay       = 24 * 3600;
+    static constexpr int64_t  usecondsPerYear     = int64_t(secondsPerYear) * 1000'000ll;
+    static constexpr int64_t  usecondsPerMonth    = int64_t(secondsPerMonth) * 1000'000ll;
+    static constexpr int64_t  usecondsPerWeek     = int64_t(secondsPerWeek) * 1000'000ll;
+    static constexpr int64_t  usecondsPerDay      = int64_t(secondsPerDay) * 1000'000ll;
+    static constexpr uint32_t blocksPerYear       = 2 * secondsPerYear;  // half seconds per year
+    static constexpr uint32_t blocksPerMonth      = 2 * secondsPerMonth; // half seconds per month
+    static constexpr uint32_t blocksPerWeek       = 2 * secondsPerWeek;  // half seconds per week
+    static constexpr uint32_t blocksPerDay        = 2 * secondsPerDay;   // half seconds per day
 
     static const symbol         S_MIS("MIS", 4);
     static const symbol         S_LED("LED", 4);
 
+    static const asset          rewards(1000000, S_MIS);
     // static const checksum256    MIS_HASH = sha256("mis", 3);
     // static const checksum256    NO_HASH = sha256("", 0);
 
@@ -49,14 +53,19 @@ namespace common {
         }
     }
 
-    void transferMIS(name& from, name to, asset quantity, string memo){
-        check(quantity.symbol == S_MIS, "This is not a MIS token");
-        action( permission_level{ name("mib.c"), name("active") },
+    void transferToken( const name& from, const name& to, const asset& quantity, const string& memo){
+        action( permission_level{ from, name("active") },
                 name("led.token"),
                 name("transfer"),
                 make_tuple(from, to, quantity, memo)
         ).send();
     }
 
-    double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
+    void validateJson( const string& payload ) {
+        if ( payload.size() <= 0 ) return;
+
+        check( payload[0] == '{', "must be a JSON object" );
+        check( payload.size() < 32768, "should be shorter than 32768 bytes" );
+    }
+    // double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
 };

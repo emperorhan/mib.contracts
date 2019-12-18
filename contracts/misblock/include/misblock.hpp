@@ -31,6 +31,7 @@ namespace misblock {
 
     struct [[eosio::table("config"), eosio::contract("mib.system")]] ConfigInfo {
         pointType   totalPointSupply = 0;
+        pointType   point = 0;
         uint64_t    misByPoint;
         time_point  lastRewardsUpdate;
     };
@@ -139,7 +140,7 @@ namespace misblock {
             void exchangemis( const name& owner, const pointType& point );
 
             [[eosio::action]]
-            void postreview( const name& owner, const string& title, const string& reviewJson );
+            void postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson );
 
             [[eosio::action]]
             void like( const name& customer, const string& reviewId );

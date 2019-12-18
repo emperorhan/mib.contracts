@@ -75,27 +75,49 @@ namespace misblock {
         is_account( owner );
 
         customersTable customertable( get_self(), get_first_receiver().value );
-        auto existingCustomer = customertable.find( owner.value );
-        check(existingCustomer != customertable.end(), "customer does not exist");
-        // const auto& customer = *existingCustomer;
+        auto citr = customertable.find( owner.value );
+        check( citr != customertable.end(), "customer does not exist" );
 
         const asset quantity = asset( uint64_t(point * 10000) / _cstate.misByPoint, common::S_MIS );
-        customertable.modify( existingCustomer, same_payer, [&]( auto& c ) {
+        customertable.modify( citr, same_payer, [&]( auto& c ) {
             c.point -= point;
         });
         common::transferToken( get_self(), owner, quantity, "exchange mistoken" );
     }
 
-    void misblock::postreview( const name& owner, const string& title, const string& reviewJson ) {
+    void misblock::postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson ) {
         require_auth( owner );
         check( title.size() < 512, "title should be less than 512 characters long" );
-    }
+        common::validateJson( reviewJson );
 
-    void misblock::paybill( const name& customer, const uuidType& billId, const uuidType& reviewId ) {
+        hospitalsTable hospitaltable( get_self(), get_first_receiver().value );
+        auto hitr = hospitaltable.find( hospital.value );
+        check( hitr != hospitaltable.end(), "hospital does not exist" );
 
+        reviewsTable reviewtable( get_self(), hitr->owner.value );
+        reviewtable.emplace( owner, [&]( auto& r ){
+            // owner, hospital, title, reviewJson를 해시해서 id를 만듬
+            string hashData = owner.to_string() + hospital.to_string() + title + reviewJson;
+            r.id = common::toUUID( hashData );
+            r.owner = owner;
+            r.likes = 0;
+            r.title = title;
+        });
+        hospitaltable.modify( hitr, same_payer, [&]( auto& h ) {
+            h.reviewCount++;
+            h.setWeight();
+        });
     }
 
     void misblock::providebill( const name& hospital, const name& customer, const string& content, const uint64_t price ) {
+        require_auth( hospital );
+        is_account( customer );
+        
+        check( content.size() < 512, "content should be less than 512 characters long" );
+        check( price > 10000, "minimum price is 1 MIS" );
+    }
+
+    void misblock::paybill( const name& customer, const uuidType& billId, const uuidType& reviewId ) {
 
     }
 }

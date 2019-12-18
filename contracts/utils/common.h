@@ -39,8 +39,8 @@ namespace common {
     //     assert_recover_key(RIDL_HASH, sig, key);
     // }
 
-    inline static uuidType toUUID(string username){
-        return std::hash<string>{}(username);
+    inline static uuidType toUUID(string data){
+        return std::hash<string>{}(data);
     }
 
     template <typename T>
@@ -61,6 +61,7 @@ namespace common {
         ).send();
     }
 
+    // TODO: Json 형식에 맞는지 더 정밀하게 검사할 필요가 있음
     void validateJson( const string& payload ) {
         if ( payload.size() <= 0 ) return;
 

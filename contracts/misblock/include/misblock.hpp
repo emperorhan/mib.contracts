@@ -132,6 +132,15 @@ namespace misblock {
             }
 
             [[eosio::action]]
+            void setmisratio( const pointType& misByPoint );
+
+            [[eosio::action]]
+            void setpubkey( const public_key& misPubKey );
+
+            [[eosio::action]]
+            void givepoint( const name& owner, const pointType& point );
+
+            [[eosio::action]]
             void giverewards();
 
             [[eosio::action]]

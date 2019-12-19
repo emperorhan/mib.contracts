@@ -18,6 +18,24 @@
 #include "../../utils/common.hpp"
 
 namespace misblock {
+    void misblock::setmisratio( const types::pointType& misByPoint ) {
+        require_auth( get_self() );
+        check( misByPoint > 0, "must set positive value" );
+        _cstate.misByPoint = misByPoint;
+    }
+
+    void misblock::setpubkey( const public_key& misPubKey ) {
+        require_auth( get_self() );
+        check( misPubKey != public_key(), "public key should not be the default value" );
+        _cstate.misPubKey = misPubKey;
+    }
+
+    void misblock::givepoint( const name& owner, const types::pointType& point ) {
+        require_auth( get_self() );
+        check( point > 0, "must set positive point" );
+        addPoint( owner, point );
+    }
+
     void misblock::giverewards() {
         // misblock이 매달 상위 16개의 병원에게 100만 MIS 토큰을 보상함
         require_auth( get_self() );
@@ -244,7 +262,7 @@ namespace misblock {
         customersTable customertable( get_self(), get_first_receiver().value );
         auto citr = customertable.find( owner.value );
 
-        name payer = !has_auth(owner) ? owner : get_self();
+        name payer = !has_auth(owner) ? get_self() : owner;
         if ( citr == customertable.end() ) {
             customertable.emplace( payer, [&]( CustomerInfo& c ) {
                 c.owner = owner;

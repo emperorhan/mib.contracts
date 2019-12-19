@@ -31,12 +31,8 @@ namespace misblock {
 
     struct [[eosio::table("config"), eosio::contract("misblock")]] ConfigInfo {
         pointType   totalPointSupply = 0;
-        pointType   point = 0;
         uint64_t    misByPoint;
         public_key  misPubKey;
-
-        // uint64_t    totalReviews;
-        
         time_point  lastRewardsUpdate;
     };
 
@@ -44,6 +40,7 @@ namespace misblock {
         // scope: code, ram payer: hospital
         name        owner;
         string      url;
+        public_key  hosPubKey;
 
         // EMR 판매 수 + 해당 병원 후기 게시글 수 + 좋아요 수 * 0.01 + 후기를 통한 환자 방문 수 * 100
         double      serviceWeight = 0;
@@ -80,13 +77,12 @@ namespace misblock {
 
     struct [[eosio::table, eosio::contract("misblock")]] ReviewInfo {
         // scope: code, ram payer: customer
-        // 안아파톡에서 후기 게시글 고유 번호 reviwer, title, reviewJson을 hash하여 만듬
         uuidType    id;
         name        owner;
         name        hospital;
 
         bool        isExpired = 0;
-        uint32_t    likes = 0; // 컨트랙트 내에서 처리해야 할까? 일별로 3개의 좋아요를 할 수 있는 제한을 구현하기가 애매하다. 시간으로?
+        int32_t     likes = 0; // 컨트랙트 내에서 처리해야 할까? 일별로 3개의 좋아요를 할 수 있는 제한을 구현하기가 애매하다. 시간으로?
 
         string      title;
         
@@ -94,33 +90,19 @@ namespace misblock {
         bool     isExpired()    const { return isExpired; }
         uint64_t byOwner()      const { return owner.value; }
         uint64_t byHospital()   const { return hospital.value; }
-        uint32_t byWeight()     const { return isExpired ? likes : -likes; }
-    };
-
-    struct [[eosio::table, eosio::contract("misblock")]] BillInfo {
-        // scope: customer, ram payer: hospital
-        uuidType    id;
-        name        hospital;
-        string      content;
-        asset       price;
-
-        uint64_t primary_key() const { return id; }
-        uint64_t byHospital() const { return hospital.value; }
+        double   byWeight()     const { return isExpired ? (double)likes : -(double)likes; }
     };
     
     typedef eosio::singleton< name("config"), ConfigInfo > configSingleton;
 
     typedef eosio::multi_index< name("hospitals"), HospitalInfo,
-                                indexed_by< name("byweight"), const_mem_fun< HospitalInfo, double, &HospitalInfo::byWeight > >
+                                indexed_by< name("byservice"), const_mem_fun< HospitalInfo, double, &HospitalInfo::byWeight > >
                                 > hospitalsTable;
     typedef eosio::multi_index< name("customers"), CustomerInfo > customersTable;
     typedef eosio::multi_index< name("reviews"), ReviewInfo,
                                 indexed_by< name("byowner"), const_mem_fun< ReviewInfo, uint64_t, &ReviewInfo::byOwner > >,
-                                indexed_by< name("byweight"), const_mem_fun< ReviewInfo, uint32_t, &ReviewInfo::byWeight > >
+                                indexed_by< name("bylike"), const_mem_fun< ReviewInfo, double, &ReviewInfo::byWeight > >
                                 > reviewsTable;
-    typedef eosio::multi_index< name("bills"), BillInfo,
-                                indexed_by< name("byhospital"), const_mem_fun< BillInfo, uint64_t, &BillInfo::byHospital > >
-                                > billsTable;
 
     class [[eosio::contract("misblock")]] misblock : public eosio::contract {
         private:
@@ -128,7 +110,17 @@ namespace misblock {
 
             ConfigInfo      _cstate;
 
-            ConfigInfo      getDefaultConfig();
+            ConfigInfo      getDefaultConfig() {
+                return ConfigInfo{
+                    0,
+                    100,
+                    public_key(),
+                    current_time_point()
+                };
+            };
+
+            void addPoint( const name& owner, const pointType& point );
+            void subPoint( const name& owner, const pointType& point );
 
         public:
             misblock( name receiver, name code, datastream<const char*> ds )
@@ -143,7 +135,7 @@ namespace misblock {
             void giverewards();
 
             [[eosio::action]]
-            void reghospital( const name& owner, const string& url );
+            void reghospital( const name& owner, const public_key& hosPubKey, const string& url );
 
             [[eosio::action]]
             void exchangemis( const name& owner, const pointType& point );
@@ -155,9 +147,6 @@ namespace misblock {
             void like( const name& owner, const uint64_t& reviewId );
 
             [[eosio::action]]
-            void providebill( const name& hospital, const name& customer, const string& content, const asset& price );
-
-            [[eosio::action]]
-            void paybill( const name& customer, const uuidType& billId, const uuidType& reviewId );
+            void paymedical( const name& customer, const name& hospital, const string& service, const asset& cost, const bool& isCash, const signature& bill, const uuidType& reviewId = nullID );
     };
 }

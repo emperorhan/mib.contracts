@@ -30,11 +30,12 @@ namespace common {
     static constexpr uint32_t blocksPerMonth      = 2 * secondsPerMonth; // half seconds per month
     static constexpr uint32_t blocksPerWeek       = 2 * secondsPerWeek;  // half seconds per week
     static constexpr uint32_t blocksPerDay        = 2 * secondsPerDay;   // half seconds per day
+    static constexpr uint64_t nullID              = UINT64_MAX;
 
     static const symbol         S_MIS("MIS", 4);
     static const symbol         S_LED("LED", 4);
 
-    static const asset          rewards(1000000, S_MIS);
+    static const asset          rewards(10000000000, S_MIS);
 
     static const char* charmap = "0123456789";
     // static const checksum256    MIS_HASH = sha256("mis", 3);

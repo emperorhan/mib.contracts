@@ -5,7 +5,10 @@
 #include <eosio/transaction.hpp>
 #include <eosio/crypto.hpp>
 
-#include "types.h"
+#include "types.hpp"
+
+#include <libc/bits/stdint.h>
+#include <string>
 
 using namespace types;
 using namespace eosio;
@@ -32,6 +35,8 @@ namespace common {
     static const symbol         S_LED("LED", 4);
 
     static const asset          rewards(1000000, S_MIS);
+
+    static const char* charmap = "0123456789";
     // static const checksum256    MIS_HASH = sha256("mis", 3);
     // static const checksum256    NO_HASH = sha256("", 0);
 
@@ -68,5 +73,17 @@ namespace common {
         check( payload[0] == '{', "must be a JSON object" );
         check( payload.size() < 32768, "should be shorter than 32768 bytes" );
     }
-    // double weight = int64_t( (current_time_point().sec_since_epoch() - (block_timestamp::block_timestamp_epoch / 1000)) / (seconds_per_day * 7) )  / double( 52 );
+
+    string uint64_to_string( const uint64_t& value ) {
+        std::string result;
+        result.reserve( 20 ); // uint128_t has 40 
+        uint128_t helper = value;
+
+        do {
+            result += charmap[ helper % 10 ];
+            helper /= 10;
+        } while ( helper );
+        std::reverse( result.begin(), result.end() );
+        return result;
+    }
 };

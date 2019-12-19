@@ -20,7 +20,7 @@
 
 #include <vector>
 
-#include "../../utils/common.h"
+#include "../../utils/common.hpp"
 
 using namespace types;
 using namespace common;
@@ -29,14 +29,18 @@ namespace misblock {
     using namespace std;
     using namespace eosio;
 
-    struct [[eosio::table("config"), eosio::contract("mib.system")]] ConfigInfo {
+    struct [[eosio::table("config"), eosio::contract("misblock")]] ConfigInfo {
         pointType   totalPointSupply = 0;
         pointType   point = 0;
         uint64_t    misByPoint;
+        public_key  misPubKey;
+
+        // uint64_t    totalReviews;
+        
         time_point  lastRewardsUpdate;
     };
 
-    struct [[eosio::table, eosio::contract("mib.system")]] HospitalInfo {
+    struct [[eosio::table, eosio::contract("misblock")]] HospitalInfo {
         // scope: code, ram payer: hospital
         name        owner;
         string      url;
@@ -45,27 +49,26 @@ namespace misblock {
         double      serviceWeight = 0;
 
         // 초기화 필요 없음
-        uint64_t    reviewCount = 0;
-        uint32_t    totalReviewsLike = 0;
+        uint32_t    reviewCount = 0;
 
         // 초기화 필요함
-        uint64_t    emrSales = 0;
-        uint64_t    reviewVisitors = 0;
+        uint32_t    emrSales = 0;
+        uint32_t    reviewVisitors = 0;
+        uint32_t    totalReviewsLike = 0;
 
         uint64_t    primary_key() const { return owner.value; }
-        double      byWeight() const { return -serviceWeight; }
+        double      byWeight()    const { return -serviceWeight; }
 
-        void        setWeight() { serviceWeight = reviewCount + totalReviewsLike + emrSales + (reviewVisitors * 100); }
+        void        setWeight() { serviceWeight = reviewCount + emrSales + (reviewVisitors * 100) + (totalReviewsLike * 0.01); }
     };
 
-    struct [[eosio::table, eosio::contract("mib.system")]] CustomerInfo {
+    struct [[eosio::table, eosio::contract("misblock")]] CustomerInfo {
         // scope: code, ram payer: customer
         name            owner;
 
         pointType       point;
 
-        vector<name>    hospitals;
-        // uint64_t paidCount;
+        set<name>       hospitals;
 
         // 현재 시간을 day로 나눠서 lastLikeTime 보다 크다면 하루가 지난것을 의미하기 때문에 하루에 세번 like 할 수 있도록 할 수 있다.
         // lastLikeTime이 (현재 시간 / day)와 같으면 remainLike가 있어야지 --remainLike 하고 Like 할 수 있도록
@@ -75,26 +78,31 @@ namespace misblock {
         uint64_t primary_key() const { return owner.value; }
     };
 
-    struct [[eosio::table, eosio::contract("mib.system")]] ReviewInfo {
-        // scope: hospital, ram payer: customer
+    struct [[eosio::table, eosio::contract("misblock")]] ReviewInfo {
+        // scope: code, ram payer: customer
         // 안아파톡에서 후기 게시글 고유 번호 reviwer, title, reviewJson을 hash하여 만듬
         uuidType    id;
         name        owner;
+        name        hospital;
 
-        uint64_t    likes; // 컨트랙트 내에서 처리해야 할까? 일별로 3개의 좋아요를 할 수 있는 제한을 구현하기가 애매하다. 시간으로?
+        bool        isExpired = 0;
+        uint32_t    likes = 0; // 컨트랙트 내에서 처리해야 할까? 일별로 3개의 좋아요를 할 수 있는 제한을 구현하기가 애매하다. 시간으로?
 
         string      title;
         
-        uint64_t primary_key() const { return id; }
-        uint64_t byOwner() const { return owner.value; }
+        uint64_t primary_key()  const { return id; }
+        bool     isExpired()    const { return isExpired; }
+        uint64_t byOwner()      const { return owner.value; }
+        uint64_t byHospital()   const { return hospital.value; }
+        uint32_t byWeight()     const { return isExpired ? likes : -likes; }
     };
 
-    struct [[eosio::table, eosio::contract("mib.system")]] BillInfo {
+    struct [[eosio::table, eosio::contract("misblock")]] BillInfo {
         // scope: customer, ram payer: hospital
         uuidType    id;
         name        hospital;
         string      content;
-        uint64_t    price;
+        asset       price;
 
         uint64_t primary_key() const { return id; }
         uint64_t byHospital() const { return hospital.value; }
@@ -107,13 +115,14 @@ namespace misblock {
                                 > hospitalsTable;
     typedef eosio::multi_index< name("customers"), CustomerInfo > customersTable;
     typedef eosio::multi_index< name("reviews"), ReviewInfo,
-                                indexed_by< name("byowner"), const_mem_fun< ReviewInfo, uint64_t, &ReviewInfo::byOwner > >
+                                indexed_by< name("byowner"), const_mem_fun< ReviewInfo, uint64_t, &ReviewInfo::byOwner > >,
+                                indexed_by< name("byweight"), const_mem_fun< ReviewInfo, uint32_t, &ReviewInfo::byWeight > >
                                 > reviewsTable;
     typedef eosio::multi_index< name("bills"), BillInfo,
                                 indexed_by< name("byhospital"), const_mem_fun< BillInfo, uint64_t, &BillInfo::byHospital > >
                                 > billsTable;
 
-    class [[eosio::contract("mib.system")]] misblock : public eosio::contract {
+    class [[eosio::contract("misblock")]] misblock : public eosio::contract {
         private:
             configSingleton _config;
 
@@ -140,13 +149,13 @@ namespace misblock {
             void exchangemis( const name& owner, const pointType& point );
 
             [[eosio::action]]
-            void postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson );
+            void postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson, const signature& sig );
 
             [[eosio::action]]
-            void like( const name& customer, const string& reviewId );
+            void like( const name& owner, const uint64_t& reviewId );
 
             [[eosio::action]]
-            void providebill( const name& hospital, const name& customer, const string& content, const uint64_t price );
+            void providebill( const name& hospital, const name& customer, const string& content, const asset& price );
 
             [[eosio::action]]
             void paybill( const name& customer, const uuidType& billId, const uuidType& reviewId );

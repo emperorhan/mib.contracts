@@ -290,3 +290,17 @@ namespace misblock {
         _cstate.totalPointSupply -= point;
     }
 }
+
+extern "C" {
+    void apply( uint64_t receiver, uint64_t code, uint64_t action ) {
+        auto self = receiver;
+
+        if ( code == self ) switch( action ) {
+            EOSIO_DISPATCH_HELPER( misblock::misblock, (setmisratio)(setpubkey)(givepoint)(giverewards)(reghospital)(exchangemis)(postreview)(like)(paymedical) )
+        } else {
+            if ( code == name("led.token").value && action == name("transfer").value ) {
+                execute_action( name(receiver), name(code), &misblock::misblock::paymedical );
+            }
+        }
+    }
+};

@@ -15,7 +15,7 @@
  */
 
 #include "../include/misblock/misblock.hpp"
-#include "../../utils/common.hpp"
+// #include "../../utils/common.h"
 
 namespace misblock {
     void misblock::setmisratio( const types::pointType& misByPoint ) {
@@ -42,7 +42,7 @@ namespace misblock {
 
         // 한달에 한번 보상해야함
         const auto ct = current_time_point();
-        check( ( ct.sec_since_epoch / common::secondsPerMonth ) > ( _cstate.lastRewardsUpdate.sec_since_epoch / common::secondsPerMonth ), "already gave rewards within this month" ); 
+        check( ( ct.sec_since_epoch() / common::secondsPerMonth ) > ( _cstate.lastRewardsUpdate.sec_since_epoch() / common::secondsPerMonth ), "already gave rewards within this month" ); 
 
         // 상위 16개의 병원
         hospitalsTable hospitaltable( get_self(), get_first_receiver().value );
@@ -67,7 +67,7 @@ namespace misblock {
         auto reviewIdx = reviewtable.get_index<name("bylike")>();
 
         cnt = 0;
-        for ( auto it = reviewIdx.cbegin(); it != reviewIdx.cend() && cnt < 10 && 100 <= it->likes && !it->isExpired; ++it ) {
+        for ( auto it = reviewIdx.cbegin(); it != reviewIdx.cend() && cnt < 10 && 100 <= it->likes && !it->Expired(); ++it ) {
             types::pointType rewardPoint = 2000 - ( 200 * ( cnt ) );
             addPoint( it->owner, rewardPoint );
             reviewtable.modify( *it, get_self(), [&]( ReviewInfo& r ) {
@@ -121,7 +121,7 @@ namespace misblock {
         common::transferToken( get_self(), owner, quantity, "exchange mistoken" );
     }
 
-    void misblock::postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson, const signature& sig ) {
+    void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
         require_auth( owner );
 
         customersTable customertable( get_self(), get_first_receiver().value );
@@ -141,7 +141,7 @@ namespace misblock {
         check( hitr != hospitaltable.end(), "hospital does not exist" );
 
         reviewsTable reviewtable( get_self(), get_first_receiver().value );
-        uint64_t reviewId = reviewtable.available_primary_key();
+        check( reviewtable.find( reviewId ) == reviewtable.end(), "reviewId alreay exist" );
         reviewtable.emplace( get_self(), [&]( ReviewInfo& r ) {
             r.id            = reviewId;
             r.owner         = owner;
@@ -177,7 +177,7 @@ namespace misblock {
         const auto ct = current_time_point();
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             // 하루가 지났으면
-            if ( ( ct.sec_since_epoch / common::secondsPerDay) > ( citr->lastLikeTime.sec_since_epoch / common::secondsPerDay ) ) {
+            if ( ( ct.sec_since_epoch() / common::secondsPerDay) > ( citr->lastLikeTime.sec_since_epoch() / common::secondsPerDay ) ) {
                 c.remainLike = 2;
             } else {
                 check( citr->remainLike, "there are no remaining likes" );

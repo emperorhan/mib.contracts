@@ -20,7 +20,7 @@
 
 #include <vector>
 
-#include "../../utils/common.hpp"
+#include "../../../utils/common.hpp"
 
 using namespace types;
 using namespace common;
@@ -37,10 +37,9 @@ namespace misblock {
     };
 
     struct [[eosio::table, eosio::contract("misblock")]] HospitalInfo {
-        // scope: code, ram payer: hospital
+        // scope: code, ram payer: misblock
         name        owner;
         string      url;
-        public_key  hosPubKey;
 
         // EMR 판매 수 + 해당 병원 후기 게시글 수 + 좋아요 수 * 0.01 + 후기를 통한 환자 방문 수 * 100
         double      serviceWeight = 0;
@@ -60,7 +59,7 @@ namespace misblock {
     };
 
     struct [[eosio::table, eosio::contract("misblock")]] CustomerInfo {
-        // scope: code, ram payer: customer
+        // scope: code, ram payer: misblock
         name            owner;
 
         pointType       point;
@@ -76,7 +75,7 @@ namespace misblock {
     };
 
     struct [[eosio::table, eosio::contract("misblock")]] ReviewInfo {
-        // scope: code, ram payer: customer
+        // scope: code, ram payer: misblock
         uuidType    id;
         name        owner;
         name        hospital;
@@ -119,6 +118,10 @@ namespace misblock {
                 };
             };
 
+            template<typename T>
+            void transferEventHandler( uint64_t sender, uint64_t receiver, T func );
+            void paybillmis( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId );
+            void paybillcash( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId );
             void addPoint( const name& owner, const pointType& point );
             void subPoint( const name& owner, const pointType& point );
 
@@ -144,7 +147,7 @@ namespace misblock {
             void giverewards();
 
             [[eosio::action]]
-            void reghospital( const name& owner, const public_key& hosPubKey, const string& url );
+            void reghospital( const name& owner, const string& url );
 
             [[eosio::action]]
             void exchangemis( const name& owner, const pointType& point );
@@ -155,7 +158,10 @@ namespace misblock {
             [[eosio::action]]
             void like( const name& owner, const uint64_t& reviewId );
 
+            // [[eosio::action]]
+            // void paymedical( const name& customer, const name& hospital, const string& service, const asset& cost, const bool& isCash, const signature& bill, const uuidType& reviewId = nullID );
+
             [[eosio::action]]
-            void paymedical( const name& customer, const name& hospital, const string& service, const asset& cost, const bool& isCash, const signature& bill, const uuidType& reviewId = nullID );
+            void transferevnt( const uint64_t& sender, const uint64_t& receiver );
     };
 }

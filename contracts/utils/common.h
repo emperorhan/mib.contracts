@@ -5,7 +5,7 @@
 #include <eosio/eosio.hpp>
 #include <eosio/transaction.hpp>
 
-#include "types.hpp"
+#include "types.h"
 
 #include <libc/bits/stdint.h>
 #include <string>

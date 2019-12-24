@@ -132,7 +132,7 @@ namespace misblock {
         common::validateJson( reviewJson );
 
         // misblock은 작성자, 병원, 제목, 리뷰내용을 config state에 등록된 공개키에 해당하는 개인키로 시그니처를 만들어서 제공해야함(무분별한 post 방지)
-        string data = owner.to_string() + hospital.to_string() + title + reviewJson;
+        string data = owner.to_string() + hospital.to_string() + common::uint64_to_string(reviewId) + title + reviewJson;
         const checksum256 digest = sha256( &data[0], data.size() );
         assert_recover_key( digest, sig, _cstate.misPubKey );
 

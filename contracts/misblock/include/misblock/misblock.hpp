@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Copyright 2019 IBCT
  *
@@ -20,7 +22,7 @@
 
 #include <vector>
 
-#include "../../../utils/common.hpp"
+#include "../../../utils/common.h"
 
 using namespace types;
 using namespace common;
@@ -86,7 +88,7 @@ namespace misblock {
         string      title;
         
         uint64_t primary_key()  const { return id; }
-        bool     isExpired()    const { return isExpired; }
+        bool     Expired()      const { return isExpired; }
         uint64_t byOwner()      const { return owner.value; }
         uint64_t byHospital()   const { return hospital.value; }
         double   byWeight()     const { return isExpired ? (double)likes : -(double)likes; }
@@ -153,7 +155,7 @@ namespace misblock {
             void exchangemis( const name& owner, const pointType& point );
 
             [[eosio::action]]
-            void postreview( const name& owner, const name& hospital, const string& title, const string& reviewJson, const signature& sig );
+            void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig );
 
             [[eosio::action]]
             void like( const name& owner, const uint64_t& reviewId );

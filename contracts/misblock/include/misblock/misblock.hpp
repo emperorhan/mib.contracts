@@ -122,8 +122,8 @@ namespace misblock {
 
             template<typename T>
             void transferEventHandler( uint64_t sender, uint64_t receiver, T func );
-            void paybillmis( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId );
-            void paybillcash( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId );
+            void paybillmis( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId = nullID );
+            void paybillcash( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId = nullID );
             void addPoint( const name& owner, const pointType& point );
             void subPoint( const name& owner, const pointType& point );
 

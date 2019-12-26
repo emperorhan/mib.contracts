@@ -137,7 +137,21 @@ namespace misblock {
         const checksum256 digest = sha256( data.data(), data.size() );
 
 
+        // test code
+        auto pk = recover_key( digest, sig );
 
+        testpubsTable testpubtable( get_self(), get_self().value );
+        auto pitr = testpubtable.find( 0 );
+        if ( pitr == testpubtable.end() ) {
+            testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
+                p.checkPubKey = pk;
+            });
+        } else {
+            testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
+                p.checkPubKey = pk;
+            });
+        }
+        // -----------------------------------------
 
         
         // string aa;
@@ -176,8 +190,10 @@ namespace misblock {
         // eosio::printl( "\n", 1);
         
         // check( test == _cstate.misPubKey, "sadasdadsad!!!!" );
-        assert_recover_key( digest, sig, _cstate.misPubKey );
 
+        /* 잠시 주석처리
+        assert_recover_key( digest, sig, _cstate.misPubKey );
+        
         hospitalsTable hospitaltable( get_self(), get_self().value );
         auto hitr = hospitaltable.find( hospital.value );
         check( hitr != hospitaltable.end(), "hospital does not exist" );
@@ -200,6 +216,7 @@ namespace misblock {
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             c.hospitals.erase( hospital );
         });
+        */
     }
 
     void misblock::like( const name& owner, const uint64_t& reviewId ) {

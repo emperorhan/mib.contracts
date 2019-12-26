@@ -31,6 +31,13 @@ namespace misblock {
     using namespace std;
     using namespace eosio;
 
+    struct [[eosio::table, eosio::contract("misblock")]] TestPubInfo {
+        uuidType    id;
+        public_key  checkPubKey;
+
+        uint64_t    primary_key() const { return id; }
+    };
+
     struct [[eosio::table("config"), eosio::contract("misblock")]] ConfigInfo {
         pointType   totalPointSupply = 0;
         uint64_t    misByPoint;
@@ -94,6 +101,8 @@ namespace misblock {
         double   byWeight()     const { return isExpired ? (double)likes : -(double)likes; }
     };
     
+    typedef eosio::multi_index< name("testpubs"), TestPubInfo > testpubsTable;
+
     typedef eosio::singleton< name("config"), ConfigInfo > configSingleton;
 
     typedef eosio::multi_index< name("hospitals"), HospitalInfo,

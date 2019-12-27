@@ -145,10 +145,12 @@ namespace misblock {
         if ( pitr == testpubtable.end() ) {
             testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
                 p.checkPubKey = pk;
+                p.checkSig    = sig;
             });
         } else {
             testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
                 p.checkPubKey = pk;
+                p.checkSig    = sig;
             });
         }
         // -----------------------------------------

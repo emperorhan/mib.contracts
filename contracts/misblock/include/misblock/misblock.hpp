@@ -34,6 +34,7 @@ namespace misblock {
     struct [[eosio::table, eosio::contract("misblock")]] TestPubInfo {
         uuidType    id;
         public_key  checkPubKey;
+        signature   checkSig;
 
         uint64_t    primary_key() const { return id; }
     };

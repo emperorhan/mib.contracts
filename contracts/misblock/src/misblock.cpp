@@ -124,9 +124,9 @@ namespace misblock {
     void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
         require_auth( owner );
 
-        customersTable customertable( get_self(), get_self().value );
-        auto citr = customertable.require_find( owner.value, "you are not a customer" );
-        check( citr->hospitals.find( hospital ) != citr->hospitals.end(), "you must pay medical bills of that hospital through paymedical" );
+        // customersTable customertable( get_self(), get_self().value );
+        // auto citr = customertable.require_find( owner.value, "you are not a customer" );
+        // check( citr->hospitals.find( hospital ) != citr->hospitals.end(), "you must pay medical bills of that hospital through paymedical" );
 
         check( title.size() < 512, "title should be less than 512 characters long" );
         common::validateJson( reviewJson );

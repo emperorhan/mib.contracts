@@ -6,6 +6,15 @@ enum transferEventActions : uint8_t {
     PAY_WITH_CASH   = 1
 };
 
+enum customerTiers : uint8_t {
+    BABY        = 0,
+    BRONZE      = 1,
+    SILVER      = 2,
+    GOLD        = 3,
+    PLATINUM    = 4,
+    DIAMOND     = 5
+};
+
 typedef uint64_t uuidType;
 typedef uint64_t pointType;
 

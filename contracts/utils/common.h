@@ -8,6 +8,7 @@
 #include "types.h"
 
 #include <libc/bits/stdint.h>
+#include <math.h>
 #include <string>
 
 using namespace types;

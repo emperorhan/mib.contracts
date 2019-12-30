@@ -30,10 +30,24 @@ namespace misblock {
         _cstate.misPubKey = misPubKey;
     }
 
-    void misblock::givepoint( const name& owner, const types::pointType& point ) {
+    void misblock::setlikerwd( const pointType& likeReward ) {
+        require_auth( get_self() );
+        check( likeReward > 0, "must set positive value" );
+        _cstate.likeReward = likeReward;
+    }
+
+    void misblock::givepoint( const name& owner, const types::pointType& point, const string& memo ) {
         require_auth( get_self() );
         check( point > 0, "must set positive point" );
+        check( memo.size() <= 256, "memo has more than 256 bytes" );
         addPoint( owner, point );
+    }
+
+    void misblock::burnpoint( const name& owner, const types::pointType& point, const string& memo ) {
+        require_auth( owner );
+        check( point > 0, "must set positive point" );
+        check( memo.size() <= 256, "memo has more than 256 bytes" );
+        subPoint( owner, point );
     }
 
     void misblock::giverewards() {
@@ -67,9 +81,13 @@ namespace misblock {
         auto reviewIdx = reviewtable.get_index<name("bylike")>();
 
         cnt = 0;
-        for ( auto it = reviewIdx.cbegin(); it != reviewIdx.cend() && cnt < 10 && 100 <= it->likes && !it->Expired(); ++it ) {
-            types::pointType rewardPoint = 2000 - ( 200 * ( cnt ) );
-            addPoint( it->owner, rewardPoint );
+        for ( auto it = reviewIdx.cbegin(); it != reviewIdx.cend() && cnt < 16 && 100 <= it->likes && !it->Expired(); ++it ) {
+            types::pointType rewardPoint = (30 - cnt) * 1000000;
+            {
+                misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+                givepointAct.send( it->owner, rewardPoint, "reward review" );
+            }
+            // addPoint( it->owner, rewardPoint );
             reviewtable.modify( *it, get_self(), [&]( ReviewInfo& r ) {
                 r.isExpired = true;
             });
@@ -100,7 +118,7 @@ namespace misblock {
             require_auth( owner );
 
             hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
-                h.url       = url;
+                h.url = url;
             });
         }
     }
@@ -109,16 +127,20 @@ namespace misblock {
         // mib.c가 고객에게 misByPoint 만큼의 비율로 point를 차감하고 MIS 토큰을 지급
         require_auth( get_self() );
         is_account( owner );
-        check( point >= _cstate.misByPoint, "minimum quantity is 1.0000 MIS" );
+        check( point >= _cstate.misByPoint, "minimum quantity is 1 MIS" );
 
         customersTable customertable( get_self(), get_self().value );
         auto citr = customertable.find( owner.value );
         check( citr != customertable.end(), "customer does not exist" );
         check( citr->point >= point, "customer's points are insufficient" );
 
-        const asset quantity = asset( uint64_t(point * 10000) / _cstate.misByPoint, common::S_MIS );
+        const asset quantity = asset( uint64_t( point * pow( 10.0, S_MIS.precision() ) ) / _cstate.misByPoint, common::S_MIS );
 
-        subPoint( owner, point );
+        {
+            misblock::burnpointAction burnpointAct{ get_self(), { owner, name("active") } };
+            burnpointAct.send( owner, point, "point exchange" );
+        }
+
         common::transferToken( get_self(), owner, quantity, "exchange mistoken" );
     }
 
@@ -196,7 +218,11 @@ namespace misblock {
         hospitalsTable hospitaltable( get_self(), get_self().value );
         auto hitr = hospitaltable.require_find( ritr->hospital.value, "hospital does not exist" );
 
-        addPoint( owner, 5 );
+        {
+            misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+            givepointAct.send( owner, _cstate.likeReward, "reward like" );
+        }
+        // addPoint( owner, _cstate.likeReward );
 
         // 하루에 세번 좋아요
         customersTable customertable( get_self(), get_self().value );

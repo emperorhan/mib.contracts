@@ -45,6 +45,8 @@ namespace misblock {
     struct [[eosio::table("config"), eosio::contract("misblock")]] ConfigInfo {
         pointType   totalPointSupply = 0;
         uint64_t    misByPoint;
+        pointType   likeReward;
+
         public_key  misPubKey;
         time_point  lastRewardsUpdate;
     };
@@ -74,7 +76,7 @@ namespace misblock {
     struct [[eosio::table, eosio::contract("misblock")]] CustomerInfo {
         // scope: code, ram payer: misblock
         name            owner;
-
+        customerTiers   tier;
         pointType       point;
 
         set<name>       hospitals;
@@ -85,6 +87,29 @@ namespace misblock {
         time_point      lastLikeTime;
 
         uint64_t primary_key() const { return owner.value; }
+
+        void     setTier() {
+            switch (point) {
+            case 0 ... 9999:
+                tier = BABY;
+                break;
+            case 10000 ... 99999:
+                tier = BRONZE;
+                break;
+            case 100000 ... 999999:
+                tier = SILVER;
+                break;
+            case 1000000 ... 9999999:
+                tier = GOLD;
+                break;
+            case 10000000 ... 99999999:
+                tier = PLATINUM;
+                break;
+            default:
+                tier = DIAMOND;
+                break;
+            }
+        }
     };
 
     struct [[eosio::table, eosio::contract("misblock")]] ReviewInfo {
@@ -126,6 +151,7 @@ namespace misblock {
                 return ConfigInfo{
                     0,
                     100,
+                    20,
                     public_key(),
                     current_time_point()
                 };
@@ -154,7 +180,13 @@ namespace misblock {
             void setpubkey( const public_key& misPubKey );
 
             [[eosio::action]]
-            void givepoint( const name& owner, const pointType& point );
+            void setlikerwd( const pointType& likeReward );
+
+            [[eosio::action]]
+            void givepoint( const name& owner, const pointType& point, const string& memo );
+
+            [[eosio::action]]
+            void burnpoint( const name& owner, const pointType& point, const string& memo );
 
             [[eosio::action]]
             void giverewards();
@@ -173,5 +205,8 @@ namespace misblock {
 
             [[eosio::action]]
             void transferevnt( const uint64_t& sender, const uint64_t& receiver );
+
+            using givepointAction = action_wrapper< name("givepoint"), &misblock::givepoint >;
+            using burnpointAction = action_wrapper< name("burnpoint"), &misblock::burnpoint >;
     };
 }

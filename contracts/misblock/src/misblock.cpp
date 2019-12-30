@@ -22,7 +22,9 @@ namespace misblock {
 
         print("Cleaning");
 
-        _cstate = getDefaultConfig();
+        cleanTable<configSingleton>( get_self(), get_self().value );
+
+        // _cstate = getDefaultConfig();
 
         cleanTable<hospitalsTable>( get_self(), get_self().value );
         cleanTable<customersTable>( get_self(), get_self().value );

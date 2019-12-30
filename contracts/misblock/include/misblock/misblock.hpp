@@ -90,19 +90,19 @@ namespace misblock {
 
         void setTier() {
             switch ( point ) {
-            case 0 ... 9999:
+            case 0 ... 4999999:
                 tier = BABY;
                 break;
-            case 10000 ... 99999:
+            case 5000000 ... 14999999:
                 tier = BRONZE;
                 break;
-            case 100000 ... 999999:
+            case 15000000 ... 24999999:
                 tier = SILVER;
                 break;
-            case 1000000 ... 9999999:
+            case 25000000 ... 34999999:
                 tier = GOLD;
                 break;
-            case 10000000 ... 99999999:
+            case 35000000 ... 49999999:
                 tier = PLATINUM;
                 break;
             default:

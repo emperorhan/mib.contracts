@@ -37,7 +37,7 @@ static constexpr uint64_t nullID = UINT64_MAX;
 static const symbol S_MIS("MIS", 4);
 static const symbol S_LED("LED", 4);
 
-static const asset rewards(10000000000, S_MIS);
+static const asset reward(10000000000, S_MIS);
 
 static const char* charmap = "0123456789";
 

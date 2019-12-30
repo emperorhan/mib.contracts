@@ -173,7 +173,8 @@ namespace misblock {
                 _config.set( _cstate, get_self() );
             }
 
-            // TODO: 회원가입 액션을 통한 customer 등록을 진행해야함 (sign up 액션 추가 필요)
+            [[eosio::action]]
+            void signup( const name& owner );
 
             [[eosio::action]]
             void setmisratio( const pointType& misByPoint );

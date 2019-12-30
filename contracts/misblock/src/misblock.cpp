@@ -17,6 +17,26 @@
 #include "../include/misblock/misblock.hpp"
 
 namespace misblock {
+    void misblock::signup( const name& owner ) {
+        require_auth( get_self() );
+        is_account( owner );
+
+        customersTable customertable( get_self(), get_self().value );
+        auto citr = customertable.find( owner.value );
+        check( citr == customertable.end(), "customer already exist" );
+
+        customertable.emplace( get_self(), [&]( CustomerInfo& c ) {
+            c.owner = owner;
+            c.remainLike = 3;
+            c.setTier();
+        });
+
+        {
+            misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+            givepointAct.send( owner, 1000, "reward signup" );
+        }
+    }
+
     void misblock::setmisratio( const types::pointType& misByPoint ) {
         require_auth( get_self() );
         check( misByPoint > 0, "must set positive value" );
@@ -63,7 +83,7 @@ namespace misblock {
 
         int cnt = 0;
         for ( auto it = hospitalIdx.cbegin(); it != hospitalIdx.cend() && cnt < 16 && 0 < it->serviceWeight; ++it ) {
-            common::transferToken(get_self(), it->owner, common::rewards, "monthly rewards");
+            common::transferToken(get_self(), it->owner, common::reward, "monthly reward");
             // 지급한 대상의 weight를 초기화해야함
             hospitaltable.modify( *it, get_self(), [&]( HospitalInfo& h ) {
                 h.emrSales = 0;
@@ -86,7 +106,7 @@ namespace misblock {
             types::pointType bonusReward = ( rewardPoint * citr->tier ) / 100;
             {
                 misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
-                givepointAct.send( it->owner, rewardPoint + bonusReward, "reward review" );
+                givepointAct.send( it->owner, rewardPoint + bonusReward, "monthly reward" );
             }
             // addPoint( it->owner, rewardPoint );
             reviewtable.modify( *it, get_self(), [&]( ReviewInfo& r ) {
@@ -366,7 +386,10 @@ namespace misblock {
         hospitalsTable hospitaltable( get_self(), get_self().value );
         reviewsTable reviewtable( get_self(), get_self().value );
 
-        check( cost.amount >= 10000, "minimum quantity is 1 MIS" );
+        auto citr = customertable.find( customer.value );
+        check( citr != customertable.end(), "customer does not exist" );
+
+        check( cost.amount >= 100000, "minimum quantity is 10 MIS" );
 
         auto hitr = hospitaltable.find( hospital.value );
         check( hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );
@@ -401,9 +424,9 @@ namespace misblock {
             types::pointType reviewReward = ( cost.amount * 0.04 ) / 100;
             {
                 misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
-                
+
                 givepointAct.send( customer, payReward, "reward pay" );
-                givepointAct.send( ritr->owner, reviewReward, "reward review" );
+                givepointAct.send( ritr->owner, reviewReward, "reward reviewer" );
             }
 
             hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
@@ -411,20 +434,10 @@ namespace misblock {
                 h.setWeight();
             }); 
         }
-        
-        auto citr = customertable.find( customer.value );
-        if ( citr == customertable.end() ) {
-            customertable.emplace( get_self(), [&]( CustomerInfo& c ) {
-                c.owner = customer;
-                c.point = 0;
-                c.hospitals.emplace( hospital );
-                c.remainLike = 3;
-            });
-        } else {
-            customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
-                c.hospitals.emplace( hospital );
-            });
-        }
+
+        customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
+            c.hospitals.emplace( hospital );
+        });
     }
 
     // TODO: 무분별한 transfer로 인한 어뷰징을 막아야함
@@ -433,6 +446,9 @@ namespace misblock {
         hospitalsTable hospitaltable( get_self(), get_self().value );
         reviewsTable reviewtable( get_self(), get_self().value );
 
+        auto citr = customertable.find( customer.value );
+        check( citr != customertable.end(), "customer does not exist" );
+
         check( cost.amount >= 10000, "minimum quantity is 1 MIS" );
 
         auto hitr = hospitaltable.find( hospital.value );
@@ -440,20 +456,35 @@ namespace misblock {
         // auto hitr = hospitaltable.require_find( hospital.value, ( hospital.to_string() + " is not hospital" ).c_str() );
 
         if ( reviewId == nullID ) {
-            const asset payReward( cost.amount * 0.3, cost.symbol );
+            // const asset payReward( cost.amount * 0.3, cost.symbol );
 
-            common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+            // common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+
+            types::pointType payReward = ( cost.amount * 0.3 ) / 100;
+            {
+                misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+                givepointAct.send( customer, payReward, "reward pay by cash" );
+            }
         } else {
             auto ritr = reviewtable.find( reviewId );
             check( ritr != reviewtable.end(), "review does not exist" );
             // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 
-            const asset payReward( cost.amount * 0.5, cost.symbol );
-            const asset reviewReward( cost.amount * 0.4, cost.symbol );
+            // const asset payReward( cost.amount * 0.5, cost.symbol );
+            // const asset reviewReward( cost.amount * 0.4, cost.symbol );
 
-            common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
-            common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
+            // common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+            // common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
+
+            types::pointType payReward = ( cost.amount * 0.5 ) / 100;
+            types::pointType reviewReward = ( cost.amount * 0.4 ) / 100;
+            {
+                misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+
+                givepointAct.send( customer, payReward, "reward pay by cash" );
+                givepointAct.send( ritr->owner, reviewReward, "reward reviewer" );
+            }
 
             hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
                 h.reviewVisitors++;
@@ -461,39 +492,22 @@ namespace misblock {
             }); 
         }
 
-        auto citr = customertable.find( customer.value );
-        if ( citr == customertable.end() ) {
-            customertable.emplace( get_self(), [&]( CustomerInfo& c ) {
-                c.owner = customer;
-                c.point = 0;
-                c.hospitals.emplace( hospital );
-                c.remainLike = 3;
-            });
-        } else {
-            customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
-                c.hospitals.emplace( hospital );
-            });
-        }
+        customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
+            c.hospitals.emplace( hospital );
+        });
     }
 
     void misblock::addPoint( const name& owner, const types::pointType& point ) {
         customersTable customertable( get_self(), get_self().value );
         auto citr = customertable.find( owner.value );
+        check( citr != customertable.end(), "customer does not exist" );
 
         // name payer = !has_auth( owner ) ? get_self() : owner;
-        if ( citr == customertable.end() ) {
-            customertable.emplace( get_self(), [&]( CustomerInfo& c ) {
-                c.owner = owner;
-                c.point = point;
-                c.remainLike = 3;
-                c.setTier();
-            });
-        } else {
-            customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
-                c.point += point;
-                c.setTier();
-            });
-        }
+        customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
+            c.point += point;
+            c.setTier();
+        });
+
         _cstate.totalPointSupply += point;
     }
 

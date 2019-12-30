@@ -173,6 +173,10 @@ namespace misblock {
                 _config.set( _cstate, get_self() );
             }
 
+            // test용
+            [[eosio::action]]
+            void clean();
+
             [[eosio::action]]
             void signup( const name& owner );
 

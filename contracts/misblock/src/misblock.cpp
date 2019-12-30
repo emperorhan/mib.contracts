@@ -17,6 +17,18 @@
 #include "../include/misblock/misblock.hpp"
 
 namespace misblock {
+    void misblock::clean() {
+        require_auth( get_self() );
+
+        print("Cleaning");
+
+        _cstate = getDefaultConfig();
+
+        cleanTable<hospitalsTable>( get_self(), get_self().value );
+        cleanTable<customersTable>( get_self(), get_self().value );
+        cleanTable<reviewsTable>( get_self(), get_self().value );
+    }
+
     void misblock::signup( const name& owner ) {
         require_auth( get_self() );
         is_account( owner );

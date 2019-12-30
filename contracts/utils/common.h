@@ -24,10 +24,12 @@ static constexpr uint32_t secondsPerYear = 52 * 7 * 24 * 3600;
 static constexpr uint32_t secondsPerMonth = 31449600;  // secondsPerYear / 12
 static constexpr uint32_t secondsPerWeek = 24 * 3600 * 7;
 static constexpr uint32_t secondsPerDay = 24 * 3600;
+static constexpr uint32_t secondsPerHour = 3600;
 static constexpr int64_t usecondsPerYear = int64_t(secondsPerYear) * 1000'000ll;
 static constexpr int64_t usecondsPerMonth = int64_t(secondsPerMonth) * 1000'000ll;
 static constexpr int64_t usecondsPerWeek = int64_t(secondsPerWeek) * 1000'000ll;
 static constexpr int64_t usecondsPerDay = int64_t(secondsPerDay) * 1000'000ll;
+static constexpr int64_t usecondsPerHour = int64_t(secondsPerHour) * 1000'000ll;
 static constexpr uint32_t blocksPerYear = 2 * secondsPerYear;    // half seconds per year
 static constexpr uint32_t blocksPerMonth = 2 * secondsPerMonth;  // half seconds per month
 static constexpr uint32_t blocksPerWeek = 2 * secondsPerWeek;    // half seconds per week
@@ -166,5 +168,10 @@ int base58encode(const std::string input, int len, unsigned char result[]) {
         result[resultlen + i] = ALPHABET[digits[digitslen - 1 - i]];
     result[digitslen + resultlen] = 0;
     return digitslen + resultlen;
+}
+
+// 한국시간은 협정 세계시 +9:00
+time_point currentTimePoint() {
+    return current_time_point() += microseconds( usecondsPerHour * 9 );
 }
 };  // namespace common

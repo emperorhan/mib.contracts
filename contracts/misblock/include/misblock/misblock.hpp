@@ -155,7 +155,7 @@ namespace misblock {
                     100,
                     20,
                     public_key(),
-                    current_time_point()
+                    currentTimePoint()
                 };
             };
 

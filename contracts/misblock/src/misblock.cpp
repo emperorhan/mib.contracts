@@ -86,7 +86,7 @@ namespace misblock {
         require_auth( get_self() );
 
         // 한달에 한번 보상해야함
-        const auto ct = current_time_point();
+        const auto ct = currentTimePoint();
         check( ( ct.sec_since_epoch() / common::secondsPerMonth ) > ( _cstate.lastRewardsUpdate.sec_since_epoch() / common::secondsPerMonth ), "already gave rewards within this month" ); 
 
         // 상위 16개의 병원
@@ -279,7 +279,7 @@ namespace misblock {
         // addPoint( owner, _cstate.likeReward );
 
         // 하루에 세번 좋아요
-        const auto ct = current_time_point();
+        const auto ct = currentTimePoint();
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             // 하루가 지났으면
             if ( ( ct.sec_since_epoch() / common::secondsPerDay) > ( citr->lastLikeTime.sec_since_epoch() / common::secondsPerDay ) ) {

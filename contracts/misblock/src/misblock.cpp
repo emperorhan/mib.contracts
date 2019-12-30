@@ -107,7 +107,8 @@ namespace misblock {
 
     void misblock::exchangemis( const name& owner, const pointType& point ) {
         // mib.c가 고객에게 misByPoint 만큼의 비율로 point를 차감하고 MIS 토큰을 지급
-        require_auth( get_self() );
+        require_auth( owner );
+        
         is_account( owner );
         check( point >= _cstate.misByPoint, "minimum quantity is 1.0000 MIS" );
 

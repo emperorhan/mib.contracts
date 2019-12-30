@@ -146,6 +146,7 @@ namespace misblock {
         common::transferToken( get_self(), owner, quantity, "exchange mistoken" );
     }
 
+    // TODO: 무분별한 review posting을 막아야함
     void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
         require_auth( owner );
 
@@ -359,30 +360,51 @@ namespace misblock {
         }
     }
 
+    // TODO: 무분별한 transfer로 인한 어뷰징을 막아야함
     void misblock::paybillmis( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId ) {
         customersTable customertable( get_self(), get_self().value );
         hospitalsTable hospitaltable( get_self(), get_self().value );
         reviewsTable reviewtable( get_self(), get_self().value );
+
+        check( cost.amount >= 10000, "minimum quantity is 1 MIS" );
 
         auto hitr = hospitaltable.find( hospital.value );
         check( hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );
         // auto hitr = hospitaltable.require_find( hospital.value, "hospital does not exist" );
 
         if ( reviewId == nullID ) {
-            const asset payReward( cost.amount * 0.03, cost.symbol );
+            // const asset payReward( cost.amount * 0.03, cost.symbol );
             
-            common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+            // common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+            // types::pointType bonusReward = ( _cstate.likeReward * citr->tier ) / 100;
+
+            // precision = 4, 1 mis == 100 point => devide 100
+            types::pointType payReward = ( cost.amount * 0.03 ) / 100;
+            {
+                misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+                givepointAct.send( customer, payReward, "reward pay" );
+            }
         } else {
             // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
             auto ritr = reviewtable.find( reviewId );
             check( ritr != reviewtable.end(), "review does not exist" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 
-            const asset payReward( cost.amount * 0.05, cost.symbol );
-            const asset reviewReward( cost.amount * 0.04, cost.symbol );
+            // const asset payReward( cost.amount * 0.05, cost.symbol );
+            // const asset reviewReward( cost.amount * 0.04, cost.symbol );
             
-            common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
-            common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
+            // common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
+            // common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
+
+            // precision = 4, 1 mis == 100 point => devide 100
+            types::pointType payReward = ( cost.amount * 0.05 ) / 100;
+            types::pointType reviewReward = ( cost.amount * 0.04 ) / 100;
+            {
+                misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
+                
+                givepointAct.send( customer, payReward, "reward pay" );
+                givepointAct.send( ritr->owner, reviewReward, "reward review" );
+            }
 
             hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
                 h.reviewVisitors++;
@@ -405,10 +427,13 @@ namespace misblock {
         }
     }
 
+    // TODO: 무분별한 transfer로 인한 어뷰징을 막아야함
     void misblock::paybillcash( const name& customer, const name& hospital, const asset& cost, const uuidType& reviewId ) {
         customersTable customertable( get_self(), get_self().value );
         hospitalsTable hospitaltable( get_self(), get_self().value );
         reviewsTable reviewtable( get_self(), get_self().value );
+
+        check( cost.amount >= 10000, "minimum quantity is 1 MIS" );
 
         auto hitr = hospitaltable.find( hospital.value );
         check( hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );

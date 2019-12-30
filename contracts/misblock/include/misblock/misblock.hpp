@@ -118,6 +118,8 @@ namespace misblock {
         name        owner;
         name        hospital;
 
+        set<name>   likers;
+
         bool        isExpired = 0;
         int32_t     likes = 0; // 컨트랙트 내에서 처리해야 할까? 일별로 3개의 좋아요를 할 수 있는 제한을 구현하기가 애매하다. 시간으로?
 

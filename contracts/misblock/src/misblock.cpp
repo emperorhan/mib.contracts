@@ -123,6 +123,10 @@ namespace misblock {
             // addPoint( it->owner, rewardPoint );
             reviewtable.modify( *it, get_self(), [&]( ReviewInfo& r ) {
                 r.isExpired = true;
+                while ( r.likers.begin() != r.likers.end() ) {
+                    auto itr = --r.likers.end();
+                    r.likers.erase( itr );
+                }
             });
             cnt++;
         }
@@ -260,6 +264,7 @@ namespace misblock {
         auto ritr = reviewtable.find( reviewId );
         check( ritr != reviewtable.end(), "review does not exist" );
         check( !ritr->isExpired, "this review is expired" );
+        check( ritr->likers.find( owner ) == ritr->likers.end(), "you already like it" );
 
         hospitalsTable hospitaltable( get_self(), get_self().value );
         // auto hitr = hospitaltable.require_find( ritr->hospital.value, "hospital does not exist" );
@@ -288,6 +293,7 @@ namespace misblock {
 
         reviewtable.modify( ritr, get_self(), [&]( ReviewInfo& r ) {
             r.likes++;
+            r.likers.emplace( owner );
         });
 
         hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {

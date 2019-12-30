@@ -76,7 +76,7 @@ namespace misblock {
     struct [[eosio::table, eosio::contract("misblock")]] CustomerInfo {
         // scope: code, ram payer: misblock
         name            owner;
-        customerTiers   tier;
+        uint8_t         tier;
         pointType       point;
 
         set<name>       hospitals;

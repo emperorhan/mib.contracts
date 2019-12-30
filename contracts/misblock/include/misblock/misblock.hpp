@@ -88,8 +88,8 @@ namespace misblock {
 
         uint64_t primary_key() const { return owner.value; }
 
-        void     setTier() {
-            switch (point) {
+        void setTier() {
+            switch ( point ) {
             case 0 ... 9999:
                 tier = BABY;
                 break;

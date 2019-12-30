@@ -15,7 +15,6 @@
  */
 
 #include "../include/misblock/misblock.hpp"
-// #include "../../utils/common.h"
 
 namespace misblock {
     void misblock::setmisratio( const types::pointType& misByPoint ) {
@@ -82,10 +81,12 @@ namespace misblock {
 
         cnt = 0;
         for ( auto it = reviewIdx.cbegin(); it != reviewIdx.cend() && cnt < 16 && 100 <= it->likes && !it->Expired(); ++it ) {
-            types::pointType rewardPoint = (30 - cnt) * 1000000;
+            auto citr = customertable.find( it->owner.value );
+            types::pointType rewardPoint = ( 30 - cnt ) * 1000000;
+            types::pointType bonusReward = ( rewardPoint * citr->tier ) / 100;
             {
                 misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
-                givepointAct.send( it->owner, rewardPoint, "reward review" );
+                givepointAct.send( it->owner, rewardPoint + bonusReward, "reward review" );
             }
             // addPoint( it->owner, rewardPoint );
             reviewtable.modify( *it, get_self(), [&]( ReviewInfo& r ) {
@@ -194,6 +195,7 @@ namespace misblock {
 
         reviewsTable reviewtable( get_self(), get_self().value );
         check( reviewtable.find( reviewId ) == reviewtable.end(), "reviewId alreay exist" );
+
         reviewtable.emplace( get_self(), [&]( ReviewInfo& r ) {
             r.id            = reviewId;
             r.owner         = owner;
@@ -215,25 +217,29 @@ namespace misblock {
     void misblock::like( const name& owner, const uint64_t& reviewId ) {
         require_auth( owner );
 
+        customersTable customertable( get_self(), get_self().value );
+        auto citr = customertable.find( owner.value );
+        check( citr != customertable.end(), "you are not a customer" );
+
         reviewsTable reviewtable( get_self(), get_self().value );
         // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
         auto ritr = reviewtable.find( reviewId );
         check( ritr != reviewtable.end(), "review does not exist" );
+        check( !ritr->isExpired, "this review is expired" );
 
         hospitalsTable hospitaltable( get_self(), get_self().value );
         // auto hitr = hospitaltable.require_find( ritr->hospital.value, "hospital does not exist" );
         auto hitr = hospitaltable.find( ritr->hospital.value );
         check( hitr != hospitaltable.end(), "hospital does not exist" );
 
+        types::pointType bonusReward = ( _cstate.likeReward * citr->tier ) / 100;
         {
             misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
-            givepointAct.send( owner, _cstate.likeReward, "reward like" );
+            givepointAct.send( owner, _cstate.likeReward + bonusReward, "reward like" );
         }
         // addPoint( owner, _cstate.likeReward );
 
         // 하루에 세번 좋아요
-        customersTable customertable( get_self(), get_self().value );
-        auto citr = customertable.find( owner.value );
         const auto ct = current_time_point();
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             // 하루가 지났으면
@@ -455,10 +461,12 @@ namespace misblock {
                 c.owner = owner;
                 c.point = point;
                 c.remainLike = 3;
+                c.setTier();
             });
         } else {
             customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
                 c.point += point;
+                c.setTier();
             });
         }
         _cstate.totalPointSupply += point;
@@ -473,6 +481,7 @@ namespace misblock {
 
         customertable.modify( customer, get_self(), [&]( CustomerInfo& c ) {
             c.point -= point;
+            c.setTier();
         });
         _cstate.totalPointSupply -= point;
     }
@@ -483,7 +492,7 @@ extern "C" {
         auto self = receiver;
 
         if ( code == self ) switch( action ) {
-            EOSIO_DISPATCH_HELPER( misblock::misblock, (setmisratio)(setpubkey)(givepoint)(giverewards)(reghospital)(exchangemis)(postreview)(like)(transferevnt) )
+            EOSIO_DISPATCH_HELPER( misblock::misblock, (setmisratio)(setpubkey)(setlikerwd)(givepoint)(burnpoint)(giverewards)(reghospital)(exchangemis)(postreview)(like)(transferevnt) )
         } else {
             if ( code == name("led.token").value && action == name("transfer").value ) {
                 execute_action( name(receiver), name(code), &misblock::misblock::transferevnt );

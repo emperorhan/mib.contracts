@@ -8,11 +8,11 @@ enum transferEventActions : uint8_t {
 
 enum customerTiers : uint8_t {
     BABY        = 0,
-    BRONZE      = 1,
-    SILVER      = 2,
-    GOLD        = 3,
-    PLATINUM    = 4,
-    DIAMOND     = 5
+    BRONZE      = 5,
+    SILVER      = 10,
+    GOLD        = 15,
+    PLATINUM    = 20,
+    DIAMOND     = 25
 };
 
 typedef uint64_t uuidType;

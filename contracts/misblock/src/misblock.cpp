@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define TEST
+
 #include "../include/misblock/misblock.hpp"
 
 namespace misblock {
@@ -87,7 +89,11 @@ namespace misblock {
 
         // 한달에 한번 보상해야함
         const auto ct = currentTimePoint();
+        #ifdef TEST
+        check( ( ct.sec_since_epoch() / common::secondsPerMinute ) > ( _cstate.lastRewardsUpdate.sec_since_epoch() / common::secondsPerMinute ), "already gave rewards within this minute(test)" ); 
+        #else
         check( ( ct.sec_since_epoch() / common::secondsPerMonth ) > ( _cstate.lastRewardsUpdate.sec_since_epoch() / common::secondsPerMonth ), "already gave rewards within this month" ); 
+        #endif
 
         // 상위 16개의 병원
         hospitalsTable hospitaltable( get_self(), get_self().value );
@@ -282,7 +288,11 @@ namespace misblock {
         const auto ct = currentTimePoint();
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             // 하루가 지났으면
+            #ifdef TEST
+            if ( ( ct.sec_since_epoch() / common::secondsPerMinute) > ( citr->lastLikeTime.sec_since_epoch() / common::secondsPerMinute ) ) {
+            #else
             if ( ( ct.sec_since_epoch() / common::secondsPerDay) > ( citr->lastLikeTime.sec_since_epoch() / common::secondsPerDay ) ) {
+            #endif
                 c.remainLike = 2;
             } else {
                 check( citr->remainLike, "there are no remaining likes" );

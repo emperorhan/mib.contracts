@@ -297,6 +297,8 @@ namespace misblock {
             name from = transferData.from;
             string& memo = transferData.memo;
 
+            if ( memo.empty() ) return;
+
             types::eventArgs res;
 
             size_t prev = memo.find( ':' );

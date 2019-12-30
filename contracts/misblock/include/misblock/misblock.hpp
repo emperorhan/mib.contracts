@@ -31,6 +31,7 @@ namespace misblock {
     using namespace std;
     using namespace eosio;
 
+    // 임시 테스트 테이블
     struct [[eosio::table, eosio::contract("misblock")]] TestPubInfo {
         uuidType    id;
         public_key  checkPubKey;
@@ -38,6 +39,8 @@ namespace misblock {
 
         uint64_t    primary_key() const { return id; }
     };
+    typedef eosio::multi_index< name("testpubs"), TestPubInfo > testpubsTable;
+    // -------------------------------------------------------------------------
 
     struct [[eosio::table("config"), eosio::contract("misblock")]] ConfigInfo {
         pointType   totalPointSupply = 0;
@@ -101,8 +104,6 @@ namespace misblock {
         uint64_t byHospital()   const { return hospital.value; }
         double   byWeight()     const { return isExpired ? (double)likes : -(double)likes; }
     };
-    
-    typedef eosio::multi_index< name("testpubs"), TestPubInfo > testpubsTable;
 
     typedef eosio::singleton< name("config"), ConfigInfo > configSingleton;
 
@@ -165,13 +166,10 @@ namespace misblock {
             void exchangemis( const name& owner, const pointType& point );
 
             [[eosio::action]]
-            void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig );
+            void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig = signature() );
 
             [[eosio::action]]
             void like( const name& owner, const uint64_t& reviewId );
-
-            // [[eosio::action]]
-            // void paymedical( const name& customer, const name& hospital, const string& service, const asset& cost, const bool& isCash, const signature& bill, const uuidType& reviewId = nullID );
 
             [[eosio::action]]
             void transferevnt( const uint64_t& sender, const uint64_t& receiver );

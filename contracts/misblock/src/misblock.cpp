@@ -107,6 +107,7 @@ namespace misblock {
 
     void misblock::exchangemis( const name& owner, const pointType& point ) {
         // mib.c가 고객에게 misByPoint 만큼의 비율로 point를 차감하고 MIS 토큰을 지급
+        require_auth( get_self() );
         is_account( owner );
         check( point >= _cstate.misByPoint, "minimum quantity is 1.0000 MIS" );
 
@@ -124,77 +125,43 @@ namespace misblock {
     void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
         require_auth( owner );
 
-        // customersTable customertable( get_self(), get_self().value );
-        // auto citr = customertable.require_find( owner.value, "you are not a customer" );
-        // check( citr->hospitals.find( hospital ) != citr->hospitals.end(), "you must pay medical bills of that hospital through paymedical" );
+        customersTable customertable( get_self(), get_self().value );
+        auto citr = customertable.require_find( owner.value, "you are not a customer" );
+        check( citr->hospitals.find( hospital ) != citr->hospitals.end(), "you must pay medical bills of that hospital through paymedical" );
 
         check( title.size() < 512, "title should be less than 512 characters long" );
         common::validateJson( reviewJson );
 
-        // misblock은 작성자, 병원, 제목, 리뷰내용을 config state에 등록된 공개키에 해당하는 개인키로 시그니처를 만들어서 제공해야함(무분별한 post 방지)
-        string data = owner.to_string() + hospital.to_string() + common::uint64_to_string(reviewId) + title + reviewJson;
-        
-        const checksum256 digest = sha256( data.data(), data.size() );
+        // 추후 recover 이슈가 해결되면 적용
+        if( sig != signature() ) {
+            // misblock은 작성자, 병원, 제목, 리뷰내용을 config state에 등록된 공개키에 해당하는 개인키로 시그니처를 만들어서 제공해야함(무분별한 post 방지)
+            string data = owner.to_string() + hospital.to_string() + common::uint64_to_string(reviewId) + title + reviewJson;
+            
+            const checksum256 digest = sha256( data.data(), data.size() );
 
+            // test code
+            auto pk = recover_key( digest, sig );
 
-        // test code
-        auto pk = recover_key( digest, sig );
+            testpubsTable testpubtable( get_self(), get_self().value );
+            auto pitr = testpubtable.find( 0 );
+            if ( pitr == testpubtable.end() ) {
+                testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
+                    p.checkPubKey = pk;
+                    p.checkSig    = sig;
+                });
+            } else {
+                testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
+                    p.checkPubKey = pk;
+                    p.checkSig    = sig;
+                });
+            }
+            // -----------------------------------------
 
-        testpubsTable testpubtable( get_self(), get_self().value );
-        auto pitr = testpubtable.find( 0 );
-        if ( pitr == testpubtable.end() ) {
-            testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
-                p.checkPubKey = pk;
-                p.checkSig    = sig;
-            });
-        } else {
-            testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
-                p.checkPubKey = pk;
-                p.checkSig    = sig;
-            });
-        }
-        // -----------------------------------------
+            eosio::printl( data.c_str(), data.size() );
+            digest.print();
 
-        
-        // string aa;
-        // for(auto it = _cstate.misPubKey.data.begin(); it != _cstate.misPubKey.data.end(); ++it){
-        //     aa += *it;
-        // }
-
-        // string pubhex = to_hex(aa.c_str(), aa.size()).substr(2); // remove leading '00'
-        // string tmp = hex_to_string(pubhex.c_str());
-        // aa = tmp;
-
-        // checksum160 chksm = ripemd160(aa.c_str(), 33);
-
-        // tmp = hex_to_string(pubhex + to_hex(&chksm, 20).substr(0,8)); // append checksum
-
-        // unsigned char encoded[37  * 137 / 100];
-        // base58encode(tmp, 37, encoded);
-        // tmp = "EOS" + std::string(reinterpret_cast<char*>(encoded));
-        // assert(tmp.length() == 53);
-        // print(tmp);
-
-        eosio::printl( data.c_str(), data.size() );
-        digest.print();
-        // eosio::printl( "\n", 1);
-        // string aa;
-        // string bb;
-        // for(auto it = _cstate.misPubKey.data.begin(); it != _cstate.misPubKey.data.end(); ++it){
-        //     aa += *it;
-        // }
-        // for(auto it = test.data.begin(); it != test.data.end(); ++it){
-        //     bb += *it;
-        // }
-        // eosio::printl(aa.c_str(), aa.size());
-        // eosio::printl( "\n", 1);
-        // eosio::printl(bb.c_str(), bb.size());
-        // eosio::printl( "\n", 1);
-        
-        // check( test == _cstate.misPubKey, "sadasdadsad!!!!" );
-
-        /* 잠시 주석처리
-        assert_recover_key( digest, sig, _cstate.misPubKey );
+            assert_recover_key( digest, sig, _cstate.misPubKey );
+        } 
         
         hospitalsTable hospitaltable( get_self(), get_self().value );
         auto hitr = hospitaltable.find( hospital.value );
@@ -218,7 +185,6 @@ namespace misblock {
         customertable.modify( citr, get_self(), [&]( CustomerInfo& c ) {
             c.hospitals.erase( hospital );
         });
-        */
     }
 
     void misblock::like( const name& owner, const uint64_t& reviewId ) {
@@ -256,71 +222,6 @@ namespace misblock {
             h.setWeight();
         });
     }
-
-    // void misblock::paymedical( const name& customer, const name& hospital, const string& service, const asset& cost, const bool& isCash, const signature& bill, const types::uuidType& reviewId = common::nullID ) {
-    //     require_auth( customer );
-    //     is_account( hospital );
-    //     check( service.size() < 32768, "service should be less than 32768 characters long" );
-    //     check( cost.is_valid(), "invalid cost" );
-    //     check( cost.amount >= 10000, "minimum cost is 1 MIS" );
-    //     check( cost.symbol == common::S_MIS, "cost symbol must be MIS" );
-
-    //     string data = hospital.to_string() + customer.to_string() + service + cost.to_string() + ( isCash ? "Cash" : "MIS" );
-    //     const checksum256 digest = sha256( &data[0], data.size() );
-
-    //     hospitalsTable hospitaltable( get_self(), get_self().value );
-    //     auto hitr = hospitaltable.require_find( hospital.value, "hospital does not exist" );
-
-    //     assert_recover_key( digest, bill, hitr->hosPubKey );
-
-    //     reviewsTable reviewtable( get_self(), get_self().value );
-
-    //     const asset fee( cost.amount / 10, cost.symbol );
-    //     if ( reviewId != common::nullID ) {
-    //         auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
-    //         check( ritr->hospital == hospital, "invalid reviewId" );
-
-    //         const asset payReward( fee.amount * 0.5, fee.symbol );
-    //         const asset reviewReward( fee.amount * 0.4, fee.symbol );
-
-    //         if ( isCash == true ) {
-    //             common::transferToken( hospital, get_self(), fee, "misblock fee" );
-    //             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
-    //             common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );    
-    //         } else {
-    //             common::transferToken( customer, hospital, cost, "pay medical bills" );
-    //             common::transferToken( hospital, get_self(), fee, "misblock fee" );
-    //             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
-    //             common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
-    //         }
-
-    //         hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
-    //             h.reviewVisitors++;
-    //             h.setWeight();
-    //         }); 
-    //     } else {
-    //         if ( isCash == true ) {
-    //             common::transferToken( hospital, get_self(), fee, "misblock fee" );
-    //         } else {
-    //             common::transferToken( customer, hospital, cost, "pay medical bills" );
-    //             common::transferToken( hospital, get_self(), fee, "misblock fee" );
-    //         }
-    //     }
-    //     customersTable customertable( get_self(), get_self().value );
-    //     auto citr = customertable.find( customer.value );
-    //     if ( citr == customertable.end() ) {
-    //         customertable.emplace( get_self(), [&]( CustomerInfo& c ) {
-    //             c.owner = customer;
-    //             c.point = 0;
-    //             c.hospitals.emplace( hospital );
-    //             c.remainLike = 3;
-    //         });
-    //     } else {
-    //         customertable.modify( citr, get_self(), [&]( CustomerInfo& c) {
-    //             c.hospitals.emplace( hospital );
-    //         });
-    //     }
-    // }
 
     void misblock::transferevnt( const uint64_t& sender, const uint64_t& receiver ) {
         misblock::transferEventHandler( sender, receiver, [&]( const types::eventArgs& e ) {
@@ -437,12 +338,12 @@ namespace misblock {
             
             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
             common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
+
+            hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
+                h.reviewVisitors++;
+                h.setWeight();
+            }); 
         }
-        
-        hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
-            h.reviewVisitors++;
-            h.setWeight();
-        }); 
         
         auto citr = customertable.find( customer.value );
         if ( citr == customertable.end() ) {
@@ -481,12 +382,12 @@ namespace misblock {
 
             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
             common::transferToken( get_self(), ritr->owner, reviewReward, "misblock review reward" );
-        }
 
-        hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
-            h.reviewVisitors++;
-            h.setWeight();
-        }); 
+            hospitaltable.modify( hitr, get_self(), [&]( HospitalInfo& h ) {
+                h.reviewVisitors++;
+                h.setWeight();
+            }); 
+        }
 
         auto citr = customertable.find( customer.value );
         if ( citr == customertable.end() ) {

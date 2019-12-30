@@ -424,6 +424,7 @@ namespace misblock {
             // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
             auto ritr = reviewtable.find( reviewId );
             check( ritr != reviewtable.end(), "review does not exist" );
+            check( ritr->owner != citr->owner, "customer and the reviewer cannot be the same" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 
             // const asset payReward( cost.amount * 0.05, cost.symbol );
@@ -481,6 +482,7 @@ namespace misblock {
         } else {
             auto ritr = reviewtable.find( reviewId );
             check( ritr != reviewtable.end(), "review does not exist" );
+            check( ritr->owner != citr->owner, "customer and the reviewer cannot be the same" );
             // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 

@@ -179,7 +179,8 @@ namespace misblock {
     }
 
     // TODO: 무분별한 review posting을 막아야함
-    void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
+    // void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig ) {
+    void misblock::postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson ) {
         require_auth( owner );
 
         customersTable customertable( get_self(), get_self().value );
@@ -191,36 +192,36 @@ namespace misblock {
         check( title.size() < 512, "title should be less than 512 characters long" );
         common::validateJson( reviewJson );
 
-        // 추후 recover 이슈가 해결되면 적용
-        if( sig != signature() ) {
-            // misblock은 작성자, 병원, 제목, 리뷰내용을 config state에 등록된 공개키에 해당하는 개인키로 시그니처를 만들어서 제공해야함(무분별한 post 방지)
-            string data = owner.to_string() + hospital.to_string() + common::uint64_to_string(reviewId) + title + reviewJson;
+        // // 추후 recover 이슈가 해결되면 적용
+        // if( sig != signature() ) {
+        //     // misblock은 작성자, 병원, 제목, 리뷰내용을 config state에 등록된 공개키에 해당하는 개인키로 시그니처를 만들어서 제공해야함(무분별한 post 방지)
+        //     string data = owner.to_string() + hospital.to_string() + common::uint64_to_string(reviewId) + title + reviewJson;
             
-            const checksum256 digest = sha256( data.data(), data.size() );
+        //     const checksum256 digest = sha256( data.data(), data.size() );
 
-            // test code
-            auto pk = recover_key( digest, sig );
+        //     // test code
+        //     auto pk = recover_key( digest, sig );
 
-            testpubsTable testpubtable( get_self(), get_self().value );
-            auto pitr = testpubtable.find( 0 );
-            if ( pitr == testpubtable.end() ) {
-                testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
-                    p.checkPubKey = pk;
-                    p.checkSig    = sig;
-                });
-            } else {
-                testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
-                    p.checkPubKey = pk;
-                    p.checkSig    = sig;
-                });
-            }
-            // -----------------------------------------
+        //     testpubsTable testpubtable( get_self(), get_self().value );
+        //     auto pitr = testpubtable.find( 0 );
+        //     if ( pitr == testpubtable.end() ) {
+        //         testpubtable.emplace(get_self(), [&]( TestPubInfo& p ) {
+        //             p.checkPubKey = pk;
+        //             p.checkSig    = sig;
+        //         });
+        //     } else {
+        //         testpubtable.modify(pitr, get_self(), [&]( TestPubInfo& p ) {
+        //             p.checkPubKey = pk;
+        //             p.checkSig    = sig;
+        //         });
+        //     }
+        //     // -----------------------------------------
 
-            eosio::printl( data.c_str(), data.size() );
-            digest.print();
+        //     eosio::printl( data.c_str(), data.size() );
+        //     digest.print();
 
-            assert_recover_key( digest, sig, _cstate.misPubKey );
-        } 
+        //     assert_recover_key( digest, sig, _cstate.misPubKey );
+        // } 
         
         hospitalsTable hospitaltable( get_self(), get_self().value );
         auto hitr = hospitaltable.find( hospital.value );

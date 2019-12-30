@@ -205,7 +205,8 @@ namespace misblock {
             void exchangemis( const name& owner, const pointType& point );
 
             [[eosio::action]]
-            void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig = signature() );
+            void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson );
+            // void postreview( const name& owner, const name& hospital, const uuidType& reviewId, const string& title, const string& reviewJson, const signature& sig = signature() );
 
             [[eosio::action]]
             void like( const name& owner, const uint64_t& reviewId );

@@ -125,7 +125,8 @@ namespace misblock {
 
     void misblock::exchangemis( const name& owner, const pointType& point ) {
         // mib.c가 고객에게 misByPoint 만큼의 비율로 point를 차감하고 MIS 토큰을 지급
-        require_auth( get_self() );
+        require_auth( owner );
+        
         is_account( owner );
         check( point >= _cstate.misByPoint, "minimum quantity is 1 MIS" );
 
@@ -148,7 +149,9 @@ namespace misblock {
         require_auth( owner );
 
         customersTable customertable( get_self(), get_self().value );
-        auto citr = customertable.require_find( owner.value, "you are not a customer" );
+        auto citr = customertable.find( owner.value );
+        check( citr != customertable.end(), "you are not a customer" );
+        // auto citr = customertable.require_find( owner.value, "you are not a customer" );
         check( citr->hospitals.find( hospital ) != citr->hospitals.end(), "you must pay medical bills of that hospital through paymedical" );
 
         check( title.size() < 512, "title should be less than 512 characters long" );
@@ -213,10 +216,14 @@ namespace misblock {
         require_auth( owner );
 
         reviewsTable reviewtable( get_self(), get_self().value );
-        auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
+        // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
+        auto ritr = reviewtable.find( reviewId );
+        check( ritr != reviewtable.end(), "review does not exist" );
 
         hospitalsTable hospitaltable( get_self(), get_self().value );
-        auto hitr = hospitaltable.require_find( ritr->hospital.value, "hospital does not exist" );
+        // auto hitr = hospitaltable.require_find( ritr->hospital.value, "hospital does not exist" );
+        auto hitr = hospitaltable.find( ritr->hospital.value );
+        check( hitr != hospitaltable.end(), "hospital does not exist" );
 
         {
             misblock::givepointAction givepointAct{ get_self(), { get_self(), name("active") } };
@@ -351,14 +358,18 @@ namespace misblock {
         hospitalsTable hospitaltable( get_self(), get_self().value );
         reviewsTable reviewtable( get_self(), get_self().value );
 
-        auto hitr = hospitaltable.require_find( hospital.value, "hospital does not exist" );
+        auto hitr = hospitaltable.find( hospital.value );
+        check( hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );
+        // auto hitr = hospitaltable.require_find( hospital.value, "hospital does not exist" );
 
         if ( reviewId == nullID ) {
             const asset payReward( cost.amount * 0.03, cost.symbol );
             
             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
         } else {
-            auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
+            // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
+            auto ritr = reviewtable.find( reviewId );
+            check( ritr != reviewtable.end(), "review does not exist" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 
             const asset payReward( cost.amount * 0.05, cost.symbol );
@@ -394,7 +405,7 @@ namespace misblock {
         reviewsTable reviewtable( get_self(), get_self().value );
 
         auto hitr = hospitaltable.find( hospital.value );
-        check(  hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );
+        check( hitr != hospitaltable.end(), ( hospital.to_string() + " is not hospital" ).c_str() );
         // auto hitr = hospitaltable.require_find( hospital.value, ( hospital.to_string() + " is not hospital" ).c_str() );
 
         if ( reviewId == nullID ) {
@@ -402,7 +413,9 @@ namespace misblock {
 
             common::transferToken( get_self(), customer, payReward, "misblock pay reward" );
         } else {
-            auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
+            auto ritr = reviewtable.find( reviewId );
+            check( ritr != reviewtable.end(), "review does not exist" );
+            // auto ritr = reviewtable.require_find( reviewId, "review does not exist" );
             check( ritr->hospital == hospital, "invalid reviewId" );
 
             const asset payReward( cost.amount * 0.5, cost.symbol );

@@ -543,7 +543,7 @@ extern "C" {
         auto self = receiver;
 
         if ( code == self ) switch( action ) {
-            EOSIO_DISPATCH_HELPER( misblock::misblock, (setmisratio)(setpubkey)(setlikerwd)(givepoint)(burnpoint)(giverewards)(reghospital)(exchangemis)(postreview)(like)(transferevnt) )
+            EOSIO_DISPATCH_HELPER( misblock::misblock, (clean)(signup)(setmisratio)(setpubkey)(setlikerwd)(givepoint)(burnpoint)(giverewards)(reghospital)(exchangemis)(postreview)(like)(transferevnt) )
         } else {
             if ( code == name("led.token").value && action == name("transfer").value ) {
                 execute_action( name(receiver), name(code), &misblock::misblock::transferevnt );

@@ -20,11 +20,9 @@ namespace misblock {
     void misblock::clean() {
         require_auth( get_self() );
 
-        print("Cleaning");
+        eosio::printl( "cleaning", 8 );
 
-        cleanTable<configSingleton>( get_self(), get_self().value );
-
-        // _cstate = getDefaultConfig();
+        _cstate = getDefaultConfig();
 
         cleanTable<hospitalsTable>( get_self(), get_self().value );
         cleanTable<customersTable>( get_self(), get_self().value );
